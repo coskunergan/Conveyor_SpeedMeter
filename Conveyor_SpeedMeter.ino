@@ -10,7 +10,7 @@
 #define TIMEOUT_PERCENT   50
 #define CALIBRATION       7.00f
 #define MAGNET_POLARITY   4
-#define DEBOUNCE_MS       100
+#define DEBOUNCE_MS       20
 //----------------------
 const byte interruptPin = 2;
 float MeterPerMinute;
@@ -19,6 +19,7 @@ volatile uint8_t TimeIndex;
 volatile uint16_t Speed;
 volatile uint16_t TimeoutMs;
 volatile uint32_t TimerMs;
+volatile uint32_t TickMs;
 volatile uint32_t TimeLogs[MAGNET_POLARITY];
 /***********************************************/
 void Timer_Init(void)
@@ -65,8 +66,9 @@ void IntPin_ISR()
 {
   uint32_t temp;
   static uint32_t last_time = 0;
-  if (TimerMs > (last_time + DEBOUNCE_MS))
+  if (TickMs > (last_time + DEBOUNCE_MS))
   {
+    last_time = TickMs;
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     TimeIndex++;
     TimeIndex %= MAGNET_POLARITY;
@@ -88,13 +90,13 @@ void IntPin_ISR()
       TimeoutMs = (Speed / MAGNET_POLARITY);
       TimeoutMs += ((TimeoutMs * TIMEOUT_PERCENT) / 100);
     }
-  }
-  last_time = TimerMs;
+  }  
 }
 /***********************************************/
 ISR(TIMER1_COMPA_vect)
 {
   TimerMs++;
+  TickMs++;
   if (TimeoutMs)
   {
     if (--TimeoutMs == 0)
